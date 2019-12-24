@@ -1,0 +1,8 @@
+{
+	"items": [
+	{
+		"name": "Clock",
+		"action": "./kindle-clock.sh"
+	}
+	]
+}
