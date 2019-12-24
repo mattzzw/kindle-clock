@@ -22,7 +22,10 @@ This is in early development, we'll see how much the battery life can be approve
 * create directory `/mnt/us/extensions/clock`
 * copy everything to the newly created directory (or use `sync2kindle.sh`)
 
-### Stopping weatherstation:
+### Starting Clock
+* Open up KUAL and press 'Clock'
+
+### Stopping :
 * Force reboot kindle by holding powerbutton ~10 seconds
 
 Todo:
