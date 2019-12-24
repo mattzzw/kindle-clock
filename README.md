@@ -6,6 +6,7 @@ The device updates the screen and is put to suspend to RAM for the reminder of t
 ![screenshot](./screenshot.jpg)
 
 This is in early development, we'll see how much the battery life can be approved.
+Right now battery life is pretty awful (~10%/h).
 
 * `kindle-clock.sh`: Main loop, generates and displays clock image, suspend to RAM and wakeup
 * `clock-preprocess.svg`: SVG template
@@ -28,8 +29,8 @@ This is in early development, we'll see how much the battery life can be approve
 ### Stopping :
 * Force reboot kindle by holding powerbutton ~10 seconds
 
-Todo:
-* [ ] Set time every hour via ntpdate
-* [ ] keep backlight off during update
-* [ ] optimize battery life
+###Todo:
+* [x] Set time every hour via ntpdate, RTC seems to be awfully drifting
+* [x] keep backlight off during update
+* [ ] optimize battery life, make updates quicker
 * [ ] clean up code
