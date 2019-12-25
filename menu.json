@@ -2,7 +2,7 @@
 	"items": [
 	{
 		"name": "Clock",
-		"action": "./kindle-clock.sh"
+		"action": "./kindle-clock.sh >> /mnt/us/clock.log 2>&1 || ./restore.sh"
 	}
 	]
 }
