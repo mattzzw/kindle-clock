@@ -77,7 +77,6 @@ while true; do
     sleep 1
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Display updated"
 
-
 	### Disable WIFI
 	#lipc-set-prop com.lab126.cmd wirelessEnable 0
 
@@ -93,6 +92,5 @@ while true; do
 
 	### Go into Suspend to Memory (STR)
 	echo `date '+%Y-%m-%d_%H:%M:%S'`: Sleeping now...
-	##echo "mem" > /sys/power/state
-    exit
+	echo "mem" > /sys/power/state
 done
