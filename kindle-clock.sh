@@ -22,8 +22,9 @@ echo 0 > /sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate
 ntpdate -s de.pool.ntp.org
 
 ### Get rid of status bar
-lipc-set-prop com.lab126.pillow disableEnablePillow disable
-
+#lipc-set-prop com.lab126.pillow disableEnablePillow disable
+### Pause framework
+killall -STOP Xorg cvm # pause framework
 ### Disable WIFI
 #lipc-set-prop com.lab126.cmd wirelessEnable 0
 
@@ -43,10 +44,14 @@ while true; do
     if [ "$MINUTE" = "00" ]; then
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Enabling Wifi" >> $LOG
         ### Enable WIFI
+        lipc-set-prop com.lab126.cmd wirelessEnable 0
+        sleep 1
     	lipc-set-prop com.lab126.cmd wirelessEnable 1
     	while wait_wlan; do
-    	  sleep 1
+            echo "`date '+%Y-%m-%d_%H:%M:%S'`: Waiting for Wifi..." >> $LOG
+    	    sleep 1
     	done
+        /usr/bin/wpa_cli -i wlan0 reconnect
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Setting time..." >> $LOG
         ntpdate -s de.pool.ntp.org
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Time set." >> $LOG
@@ -55,25 +60,26 @@ while true; do
 
         ### Disable WIFI
         #lipc-set-prop com.lab126.cmd wirelessEnable 0
-        sleep 15 ## just in case RTC is drifting backwards...
+        #sleep 10 ## just in case RTC is drifting backwards...
     fi;
 
     #BAT=$(gasgauge-info -s | sed s/%//)
-    BAT=$(cat cat /sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity)
+    BAT=$(cat /sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity)
     TIME=$(date '+%H:%M')
     DATE=$(date '+%A, %-d. %B %Y')
 
     ### Display time
     $FBINK -c -m -t \
-        regular=/usr/java/lib/fonts/Caecilia_LT_65_Medium.ttf,size=150,top=10 "$TIME"
+        regular=/usr/java/lib/fonts/Palatino-Regular.ttf,size=150,top=10\
+        "$TIME" > /dev/null 2>&1
 
     $FBINK -m -t \
-        regular=/usr/java/lib/fonts/Caecilia_LT_65_Medium.ttf,size=20,top=500,bottom=0,left=0,right=0\
-        "$DATE"
+        regular=/usr/java/lib/fonts/Palatino-Regular.ttf,size=20,top=500,bottom=0,left=0,right=0\
+        "$DATE" > /dev/null 2>&1
 
     $FBINK -r -t \
-        regular=/usr/java/lib/fonts/Caecilia_LT_65_Medium.ttf,size=10,top=0,bottom=0,left=900,right=0\
-        "Bat: $BAT"
+        regular=/usr/java/lib/fonts/Palatino-Regular.ttf,size=10,top=0,bottom=0,left=900,right=0\
+        "Bat: $BAT" > /dev/null 2>&1
 
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Battery: $BAT" >> $LOG
 
@@ -86,6 +92,11 @@ while true; do
     NOW=$(date +%s)
     let WAKEUP_TIME="((($NOW + 59)/60)*60)" # Hack to get next minute
     let SLEEP_SECS=$WAKEUP_TIME-$NOW
+
+    ### Prevent SLEEP_SECS from being negative or just too small
+    if [ $SLEEP_SECS -lt 5 ]; then
+        let SLEEP_SECS=$SLEEP_SECS+60
+    fi
     rtcwake -d /dev/rtc1 -m no -s $SLEEP_SECS
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Going to sleep for $SLEEP_SECS" >> $LOG
 	### Go into Suspend to Memory (STR)
