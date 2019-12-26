@@ -3,7 +3,7 @@
 This turns a Kindle Paperwhite into a clock running from battery.
 The device updates the screen and is put to suspend to RAM for the reminder of the minute.
 
-![screenshot](./screenshot.png)
+![screenshot](./screenshot.jpg)
 
 This is in early development, we'll see how much the battery life can be approved.
 
