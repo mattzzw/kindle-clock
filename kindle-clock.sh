@@ -9,6 +9,7 @@ wait_wlan() {
 }
 
 ### Prep Kindle...
+echo "`date '+%Y-%m-%d_%H:%M:%S'`: ------------- Startup ------------" >> $LOG
 
 ### No way of running this if wifi is down.
 if [ `lipc-get-prop com.lab126.wifid cmState` != "CONNECTED" ]; then
@@ -26,27 +27,27 @@ lipc-set-prop com.lab126.pillow disableEnablePillow disable
 ### Disable WIFI
 #lipc-set-prop com.lab126.cmd wirelessEnable 0
 
-### Set lowest cpu clock
-echo powersave > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-
-### Backlight off
-echo -n 0 > /sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity
-
 # clear screen
 $FBINK -f -c
 
 while true; do
+    ### Set lowest cpu clock
+    echo powersave > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+    ### Backlight off
+    echo -n 0 > /sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity
     ### Disable Screensaver
     lipc-set-prop com.lab126.powerd preventScreenSaver 1
 
     ### Set time via ntpdate every hour
     MINUTE=`date "+%M"`
     if [ "$MINUTE" = "00" ]; then
+        echo "`date '+%Y-%m-%d_%H:%M:%S'`: Enabling Wifi" >> $LOG
         ### Enable WIFI
     	lipc-set-prop com.lab126.cmd wirelessEnable 1
     	while wait_wlan; do
     	  sleep 1
     	done
+        echo "`date '+%Y-%m-%d_%H:%M:%S'`: Setting time..." >> $LOG
         ntpdate -s de.pool.ntp.org
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Time set." >> $LOG
         ### clean screen every hour as well
@@ -54,7 +55,6 @@ while true; do
 
         ### Disable WIFI
         #lipc-set-prop com.lab126.cmd wirelessEnable 0
-
         sleep 15 ## just in case RTC is drifting backwards...
     fi;
 
@@ -74,6 +74,8 @@ while true; do
     $FBINK -r -t \
         regular=/usr/java/lib/fonts/Caecilia_LT_65_Medium.ttf,size=10,top=0,bottom=0,left=900,right=0\
         "Bat: $BAT"
+
+    echo "`date '+%Y-%m-%d_%H:%M:%S'`: Battery: $BAT" >> $LOG
 
     # let the display update
     sleep 1
