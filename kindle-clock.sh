@@ -3,8 +3,9 @@
 PWD=$(pwd)
 LOG="/mnt/us/clock.log"
 FBINK="/mnt/us/extensions/MRInstaller/bin/K5/fbink"
+FONT="regular=/usr/java/lib/fonts/Palatino-Regular.ttf"
 
-wait_wlan() {
+wait_for_wifi() {
   return `lipc-get-prop com.lab126.wifid cmState | grep -e "READY" -e "CONNECTED" | wc -l`
 }
 
@@ -27,6 +28,8 @@ ntpdate -s de.pool.ntp.org
 #killall -STOP Xorg cvm # pause framework
 ### Kill framework
 stop framework
+sleep 2
+
 ### Disable WIFI
 #lipc-set-prop com.lab126.cmd wirelessEnable 0
 
@@ -34,6 +37,7 @@ stop framework
 $FBINK -f -c
 
 while true; do
+    echo "`date '+%Y-%m-%d_%H:%M:%S'`: Top of loop (awake!)." >> $LOG
     ### Set lowest cpu clock
     echo powersave > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
     ### Backlight off
@@ -45,50 +49,54 @@ while true; do
     MINUTE=`date "+%M"`
     if [ "$MINUTE" = "00" ]; then
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Enabling Wifi" >> $LOG
-        ### Enable WIFI
+        ### Enable WIFI, disable wifi first in order to have a defined state
         lipc-set-prop com.lab126.cmd wirelessEnable 0
         sleep 1
     	lipc-set-prop com.lab126.cmd wirelessEnable 1
-    	while wait_wlan; do
-            echo "`date '+%Y-%m-%d_%H:%M:%S'`: Waiting for Wifi..." >> $LOG
+        TRYCNT=0
+        ### Wait for wifi to come up
+    	while wait_for_wifi; do
+            if [ ${TRYCNT} -gt 30 ]; then
+                ### waited long enough
+                echo "`date '+%Y-%m-%d_%H:%M:%S'`: No Wifi... ($TRYCNT)" >> $LOG
+                $FBINK -r -t $FONT,size=10,top=0,bottom=0,left=50,right=0 "No Wifi!" > /dev/null 2>&1
+                break
+            fi
+            echo "`date '+%Y-%m-%d_%H:%M:%S'`: Waiting for Wifi... ($TRYCNT)" >> $LOG
             lipc-get-prop com.lab126.wifid cmState >> $LOG
     	    sleep 1
+            let TRYCNT=$TRYCNT+1
     	done
+        ### Just to be super sure...
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Reconnecting to Wifi..." >> $LOG
         /usr/bin/wpa_cli -i wlan0 reconnect
         lipc-get-prop com.lab126.wifid cmState >> $LOG
+
+        ### Finally, set time
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Setting time..." >> $LOG
         ntpdate -s de.pool.ntp.org
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Time set." >> $LOG
+
         ### clean screen every hour as well
-        $FBINK -f -c
+        $FBINK -f -c > /dev/null 2>&1
 
         ### Disable WIFI
         #lipc-set-prop com.lab126.cmd wirelessEnable 0
-        #sleep 10 ## just in case RTC is drifting backwards...
     fi;
 
-    #BAT=$(gasgauge-info -s | sed s/%//)
+    #BAT=$(gasgauge-info -s)
     BAT=$(cat /sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity)
     TIME=$(date '+%H:%M')
     DATE=$(date '+%A, %-d. %B %Y')
 
     ### Display time
-    $FBINK -c -m -t \
-        regular=/usr/java/lib/fonts/Palatino-Regular.ttf,size=150,top=10\
-        "$TIME" > /dev/null 2>&1
-
-    $FBINK -m -t \
-        regular=/usr/java/lib/fonts/Palatino-Regular.ttf,size=20,top=500,bottom=0,left=0,right=0\
-        "$DATE" > /dev/null 2>&1
-
-    $FBINK -r -t \
-        regular=/usr/java/lib/fonts/Palatino-Regular.ttf,size=10,top=0,bottom=0,left=900,right=0\
-        "Bat: $BAT" > /dev/null 2>&1
+    $FBINK -c -m -t $FONT,size=150,top=10 "$TIME" > /dev/null 2>&1
+    $FBINK -m -t $FONT,size=20,top=500,bottom=0,left=0,right=0 "$DATE" > /dev/null 2>&1
+    $FBINK -r -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT" > /dev/null 2>&1
 
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Battery: $BAT" >> $LOG
 
-    # let the display update
+    ### let the display update
     sleep 1
 
     ### Set Wakeuptimer
@@ -99,6 +107,7 @@ while true; do
     let SLEEP_SECS=$WAKEUP_TIME-$NOW
 
     ### Prevent SLEEP_SECS from being negative or just too small
+    ### if we took too long
     if [ $SLEEP_SECS -lt 5 ]; then
         let SLEEP_SECS=$SLEEP_SECS+60
     fi
