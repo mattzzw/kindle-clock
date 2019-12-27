@@ -2,7 +2,7 @@
 	"items": [
 	{
 		"name": "Clock",
-		"action": "./kindle-clock.sh || ./restore.sh"
+		"action": "setsid ./kindle-clock.sh || ./restore.sh"
 	}
 	]
 }

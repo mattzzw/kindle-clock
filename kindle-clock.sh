@@ -5,7 +5,7 @@ LOG="/mnt/us/clock.log"
 FBINK="/mnt/us/extensions/MRInstaller/bin/K5/fbink"
 
 wait_wlan() {
-  return `lipc-get-prop com.lab126.wifid cmState | grep CONNECTED | wc -l`
+  return `lipc-get-prop com.lab126.wifid cmState | grep -e "READY" -e "CONNECTED" | wc -l`
 }
 
 ### Prep Kindle...
@@ -24,7 +24,9 @@ ntpdate -s de.pool.ntp.org
 ### Get rid of status bar
 #lipc-set-prop com.lab126.pillow disableEnablePillow disable
 ### Pause framework
-killall -STOP Xorg cvm # pause framework
+#killall -STOP Xorg cvm # pause framework
+### Kill framework
+stop framework
 ### Disable WIFI
 #lipc-set-prop com.lab126.cmd wirelessEnable 0
 
@@ -49,9 +51,12 @@ while true; do
     	lipc-set-prop com.lab126.cmd wirelessEnable 1
     	while wait_wlan; do
             echo "`date '+%Y-%m-%d_%H:%M:%S'`: Waiting for Wifi..." >> $LOG
+            lipc-get-prop com.lab126.wifid cmState >> $LOG
     	    sleep 1
     	done
+        echo "`date '+%Y-%m-%d_%H:%M:%S'`: Reconnecting to Wifi..." >> $LOG
         /usr/bin/wpa_cli -i wlan0 reconnect
+        lipc-get-prop com.lab126.wifid cmState >> $LOG
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Setting time..." >> $LOG
         ntpdate -s de.pool.ntp.org
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Time set." >> $LOG
