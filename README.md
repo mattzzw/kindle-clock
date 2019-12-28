@@ -1,13 +1,16 @@
 # Kindle Clock
 
-This turns a Kindle Paperwhite into a clock.
-The device updates the screen and is put to suspend to RAM for the reminder of the minute for minimum power consumption.
+This turns a Kindle Paperwhite into a pretty clock with a little bit of weather info.
+
+Every minute the device updates the screen and is put to suspend to RAM for the reminder of the minute for minimum power consumption.
+
+Every hour the clock is synchronized via `ntpdate` and weather info is updated. Screen updates can be a couple of seconds late (or dozens of seconds on the full hour - depending on how long it takes to reconnect to wifi, get data etc.) but as the RTC on my kindle is drifting like crazy anyway this clock will not be super (=to the second) accurate anyway.
 
 ![screenshot](./screenshot.jpg)
 
 This is in early development, we'll see how much the battery life can be approved.
 
-EDIT: Quick calculation shows a maximum runtime of a couple of days at best. (1600mAh battery, using it for 10 secs @ 100mA every minute results in 4 days runtime)
+EDIT: Quick calculation shows a maximum runtime of a couple of days at best. (1600mAh battery, using it for 5 secs @ 100mA every minute results in 8 days runtime)
 
 But I don't mind running the clock from a power supply :)
 
