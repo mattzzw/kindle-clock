@@ -85,10 +85,11 @@ while true; do
         ### clean screen every hour as well
         $FBINK -f -c > /dev/null 2>&1
         $FBINK -f -c > /dev/null 2>&1
-
-        ### Disable WIFI
-        lipc-set-prop com.lab126.cmd wirelessEnable 0
     fi;
+
+    ### Disable WIFI
+    lipc-set-prop com.lab126.cmd wirelessEnable 0
+
 
     #BAT=$(gasgauge-info -s)
     BAT=$(cat /sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity)
