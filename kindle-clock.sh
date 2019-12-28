@@ -87,7 +87,7 @@ while true; do
         $FBINK -f -c > /dev/null 2>&1
 
         ### Disable WIFI
-        #lipc-set-prop com.lab126.cmd wirelessEnable 0
+        lipc-set-prop com.lab126.cmd wirelessEnable 0
     fi;
 
     #BAT=$(gasgauge-info -s)
@@ -96,7 +96,7 @@ while true; do
     DATE=$(date '+%A, %-d. %B %Y')
 
     ### Display time
-    $FBINK -c -m -t $FONT,size=150,top=10 "$TIME" > /dev/null 2>&1
+    $FBINK -c -m -t $FONT,size=150,top=10,bottom=0,left=0,right=0 "$TIME" > /dev/null 2>&1
     $FBINK    -m -t $FONT,size=20,top=500,bottom=0,left=0,right=0 "$DATE" > /dev/null 2>&1
     $FBINK    -r -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT" > /dev/null 2>&1
 
