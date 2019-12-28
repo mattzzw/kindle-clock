@@ -27,14 +27,17 @@ ntpdate -s de.pool.ntp.org
 ### Pause framework
 #killall -STOP Xorg cvm # pause framework
 ### Kill framework
-stop framework
+#stop framework
+stop lab126_gui
+
 sleep 2
 
 ### Disable WIFI
 #lipc-set-prop com.lab126.cmd wirelessEnable 0
 
 # clear screen
-$FBINK -f -c
+$FBINK -f -c > /dev/null 2>&1
+$FBINK -f -c > /dev/null 2>&1
 
 while true; do
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Top of loop (awake!)." >> $LOG
@@ -72,12 +75,15 @@ while true; do
         /usr/bin/wpa_cli -i wlan0 reconnect
         lipc-get-prop com.lab126.wifid cmState >> $LOG
 
-        ### Finally, set time
-        echo "`date '+%Y-%m-%d_%H:%M:%S'`: Setting time..." >> $LOG
-        ntpdate -s de.pool.ntp.org
-        echo "`date '+%Y-%m-%d_%H:%M:%S'`: Time set." >> $LOG
+        if [ `lipc-get-prop com.lab126.wifid cmState` = "CONNECTED" ]; then
+            ### Finally, set time
+            echo "`date '+%Y-%m-%d_%H:%M:%S'`: Setting time..." >> $LOG
+            ntpdate -s de.pool.ntp.org
+            echo "`date '+%Y-%m-%d_%H:%M:%S'`: Time set." >> $LOG
+        fi
 
         ### clean screen every hour as well
+        $FBINK -f -c > /dev/null 2>&1
         $FBINK -f -c > /dev/null 2>&1
 
         ### Disable WIFI
@@ -91,8 +97,8 @@ while true; do
 
     ### Display time
     $FBINK -c -m -t $FONT,size=150,top=10 "$TIME" > /dev/null 2>&1
-    $FBINK -m -t $FONT,size=20,top=500,bottom=0,left=0,right=0 "$DATE" > /dev/null 2>&1
-    $FBINK -r -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT" > /dev/null 2>&1
+    $FBINK    -m -t $FONT,size=20,top=500,bottom=0,left=0,right=0 "$DATE" > /dev/null 2>&1
+    $FBINK    -r -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT" > /dev/null 2>&1
 
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Battery: $BAT" >> $LOG
 
