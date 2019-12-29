@@ -18,8 +18,14 @@ if [ `lipc-get-prop com.lab126.wifid cmState` != "CONNECTED" ]; then
 	exit 1
 fi
 
-### stop framework
+### stop processes that we don't need
 stop lab126_gui
+stop otaupd
+stop phd
+stop tmd
+stop x
+stop todo
+stop mcsd
 sleep 2
 
 ### turn off 270 degree rotation of framebuffer device

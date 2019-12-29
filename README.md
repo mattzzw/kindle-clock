@@ -18,7 +18,6 @@ But I don't mind running the clock from a power supply :)
 * `kindle-clock.sh`: Main loop, displays clock, suspend to RAM and wakeup
 * `config.xml`: KUAL config file
 * `menu.json`: KUAL config file
-* `restore.sh`: bail-out, restore kindle framework and display
 * `sync2kindle.sh`: simple rsync helper for development
 
 The scipts logs to `/mnt/us/clock.log`.
