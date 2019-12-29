@@ -5,9 +5,19 @@ LOG="/mnt/us/clock.log"
 FBINK="/mnt/us/extensions/MRInstaller/bin/K5/fbink"
 FONT="regular=/usr/java/lib/fonts/Palatino-Regular.ttf"
 CITY="Hamburg"
+COND="---"
+TEMP="---"
 
 wait_for_wifi() {
   return `lipc-get-prop com.lab126.wifid cmState | grep -e "READY" -e "CONNECTED" | wc -l`
+}
+
+get_weather() {
+    WEATHER=$(curl -s -f -m 5 https://de.wttr.in/$CITY?format="%C,+%t")
+    if [ ! -z "$COND" ]; then
+        COND=${WEATHER%,*}
+        TEMP=${WEATHER#*,}
+    fi
 }
 
 ### Prep Kindle...
@@ -33,9 +43,7 @@ echo 0 > /sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate
 
 ### set time/weather as we start up
 ntpdate -s de.pool.ntp.org
-WEATHER=$(curl de.wttr.in/$CITY?format="%C,+%t")
-COND=${WEATHER%,*}
-TEMP=${WEATHER#*,}
+get_weather
 
 # clear screen
 $FBINK -f -c > /dev/null 2>&1
@@ -82,11 +90,7 @@ while true; do
             echo "`date '+%Y-%m-%d_%H:%M:%S'`: Setting time..." >> $LOG
             ntpdate -s de.pool.ntp.org
             echo "`date '+%Y-%m-%d_%H:%M:%S'`: Time set." >> $LOG
-
-            ### Add a little bit of weather info
-            WEATHER=$(curl de.wttr.in/$CITY?format="%C,+%t")
-            COND=${WEATHER%,*}
-            TEMP=${WEATHER#*,}
+            get_weather
         fi
 
         ### clean screen every hour as well
