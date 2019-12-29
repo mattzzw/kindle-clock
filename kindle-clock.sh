@@ -41,6 +41,13 @@ sleep 2
 ### turn off 270 degree rotation of framebuffer device
 echo 0 > /sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate
 
+### Set lowest cpu clock
+echo powersave > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+### Backlight off
+echo -n 0 > /sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity
+### Disable Screensaver
+lipc-set-prop com.lab126.powerd preventScreenSaver 1
+
 ### set time/weather as we start up
 ntpdate -s de.pool.ntp.org
 get_weather
@@ -51,14 +58,8 @@ $FBINK -f -c > /dev/null 2>&1
 
 while true; do
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Top of loop (awake!)." >> $LOG
-    ### Set lowest cpu clock
-    echo powersave > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-    ### Backlight off
-    echo -n 0 > /sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity
-    ### Disable Screensaver
-    lipc-set-prop com.lab126.powerd preventScreenSaver 1
 
-    ### Set time via ntpdate every hour
+    ### Get weather data and set time via ntpdate every hour
     MINUTE=`date "+%M"`
     if [ "$MINUTE" = "00" ]; then
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Enabling Wifi" >> $LOG
@@ -116,7 +117,7 @@ while true; do
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Battery: $BAT" >> $LOG
 
     ### let the display update
-    sleep 1
+    #sleep 1
 
     ### Set Wakeuptimer
 	#echo 0 > /sys/class/rtc/rtc1/wakealarm
