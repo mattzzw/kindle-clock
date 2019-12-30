@@ -114,7 +114,7 @@ while true; do
     TIME=$(date '+%H:%M')
     DATE=$(date '+%A, %-d. %B %Y')
 
-    $FBINK -b -m -t $FONT,size=150,top=10,bottom=0,left=0,right=0 "$TIME"
+    $FBINK -b -c -m -t $FONT,size=150,top=10,bottom=0,left=0,right=0 "$TIME"
     $FBINK -b -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "$DATE"
     $FBINK -b    -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT"
     $FBINK -b -m -t $FONT,size=20,top=510,bottom=0,left=0,right=0 "$COND"
@@ -123,7 +123,7 @@ while true; do
         $FBINK -r -t $FONT,size=10,top=0,bottom=0,left=50,right=0 "No Wifi!"
     fi
     ### update framebuffer
-    $FBINK -w -c -s foo
+    $FBINK -w -s foo
 
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Battery: $BAT" >> $LOG
 
