@@ -14,9 +14,10 @@ wait_for_wifi() {
 
 get_weather() {
     WEATHER=$(curl -s -f -m 5 https://de.wttr.in/$CITY?format="%C,+%t")
-    if [ ! -z "$COND" ]; then
+    if [ ! -z "$WEATHER" ]; then
         COND=${WEATHER%,*}
-        TEMP=${WEATHER#*,}
+        TEMP=$(echo ${WEATHER#*,} | sed s/+//)
+        echo "`date '+%Y-%m-%d_%H:%M:%S'`: Got weather data. ($WEATHER)" >> $LOG
     fi
 }
 
@@ -108,11 +109,11 @@ while true; do
     DATE=$(date '+%A, %-d. %B %Y')
 
     ### Display time and weather
-    $FBINK -c -m -t $FONT,size=150,top=10,bottom=0,left=0,right=0 "$TIME" > /dev/null 2>&1
-    $FBINK    -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "$DATE" > /dev/null 2>&1
-    $FBINK       -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT" > /dev/null 2>&1
-    $FBINK    -m -t $FONT,size=20,top=510,bottom=0,left=0,right=0 "$COND"  > /dev/null 2>&1
-    $FBINK    -m -t $FONT,size=50,top=590,bottom=0,left=0,right=0 "$TEMP"  > /dev/null 2>&1
+    $FBINK -w -c -m -t $FONT,size=150,top=10,bottom=0,left=0,right=0 "$TIME" > /dev/null 2>&1
+    $FBINK -w    -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "$DATE" > /dev/null 2>&1
+    $FBINK -w       -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT" > /dev/null 2>&1
+    $FBINK -w    -m -t $FONT,size=20,top=510,bottom=0,left=0,right=0 "$COND"  > /dev/null 2>&1
+    $FBINK -w    -m -t $FONT,size=50,top=590,bottom=0,left=0,right=0 "$TEMP"  > /dev/null 2>&1
 
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Battery: $BAT" >> $LOG
 
