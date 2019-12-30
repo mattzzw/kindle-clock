@@ -2,7 +2,7 @@
 
 PWD=$(pwd)
 LOG="/mnt/us/clock.log"
-FBINK="/mnt/us/extensions/MRInstaller/bin/K5/fbink"
+FBINK="/mnt/us/extensions/MRInstaller/bin/K5/fbink -q"
 FONT="regular=/usr/java/lib/fonts/Palatino-Regular.ttf"
 CITY="Hamburg"
 COND="---"
@@ -12,13 +12,20 @@ wait_for_wifi() {
   return `lipc-get-prop com.lab126.wifid cmState | grep -e "READY" -e "CONNECTED" | wc -l`
 }
 
-get_weather() {
+
+### Updates weather info
+update_weather() {
     WEATHER=$(curl -s -f -m 5 https://de.wttr.in/$CITY?format="%C,+%t")
     if [ ! -z "$WEATHER" ]; then
         COND=${WEATHER%,*}
         TEMP=$(echo ${WEATHER#*,} | sed s/+//)
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Got weather data. ($WEATHER)" >> $LOG
     fi
+}
+
+clear_screen(){
+    $FBINK -f -c
+    $FBINK -f -c
 }
 
 ### Prep Kindle...
@@ -28,6 +35,9 @@ echo "`date '+%Y-%m-%d_%H:%M:%S'`: ------------- Startup ------------" >> $LOG
 if [ `lipc-get-prop com.lab126.wifid cmState` != "CONNECTED" ]; then
 	exit 1
 fi
+
+$FBINK -w -c -f -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "Starting Clock..." > /dev/null 2>&1
+
 
 ### stop processes that we don't need
 stop lab126_gui
@@ -44,21 +54,18 @@ echo 0 > /sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate
 
 ### Set lowest cpu clock
 echo powersave > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-### Backlight off
-echo -n 0 > /sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity
 ### Disable Screensaver
 lipc-set-prop com.lab126.powerd preventScreenSaver 1
 
 ### set time/weather as we start up
 ntpdate -s de.pool.ntp.org
-get_weather
-
-# clear screen
-$FBINK -f -c > /dev/null 2>&1
-$FBINK -f -c > /dev/null 2>&1
+update_weather
+clear_screen
 
 while true; do
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Top of loop (awake!)." >> $LOG
+    ### Backlight off
+    echo -n 0 > /sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity
 
     ### Get weather data and set time via ntpdate every hour
     MINUTE=`date "+%M"`
@@ -69,12 +76,13 @@ while true; do
         sleep 1
     	lipc-set-prop com.lab126.cmd wirelessEnable 1
         TRYCNT=0
+        NOWIFI=0
         ### Wait for wifi to come up
     	while wait_for_wifi; do
             if [ ${TRYCNT} -gt 30 ]; then
                 ### waited long enough
                 echo "`date '+%Y-%m-%d_%H:%M:%S'`: No Wifi... ($TRYCNT)" >> $LOG
-                $FBINK -r -t $FONT,size=10,top=0,bottom=0,left=50,right=0 "No Wifi!" > /dev/null 2>&1
+                NOWIFI=1
                 break
             fi
             echo "`date '+%Y-%m-%d_%H:%M:%S'`: Waiting for Wifi... ($TRYCNT)" >> $LOG
@@ -92,13 +100,11 @@ while true; do
             echo "`date '+%Y-%m-%d_%H:%M:%S'`: Setting time..." >> $LOG
             ntpdate -s de.pool.ntp.org
             echo "`date '+%Y-%m-%d_%H:%M:%S'`: Time set." >> $LOG
-            get_weather
+            update_weather
         fi
 
-        ### clean screen every hour as well
-        $FBINK -f -c > /dev/null 2>&1
-        $FBINK -f -c > /dev/null 2>&1
-    fi;
+        clear_screen
+    fi
 
     ### Disable WIFI
     lipc-set-prop com.lab126.cmd wirelessEnable 0
@@ -108,17 +114,18 @@ while true; do
     TIME=$(date '+%H:%M')
     DATE=$(date '+%A, %-d. %B %Y')
 
-    ### Display time and weather
-    $FBINK -w -c -m -t $FONT,size=150,top=10,bottom=0,left=0,right=0 "$TIME" > /dev/null 2>&1
-    $FBINK -w    -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "$DATE" > /dev/null 2>&1
-    $FBINK -w       -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT" > /dev/null 2>&1
-    $FBINK -w    -m -t $FONT,size=20,top=510,bottom=0,left=0,right=0 "$COND"  > /dev/null 2>&1
-    $FBINK -w    -m -t $FONT,size=50,top=590,bottom=0,left=0,right=0 "$TEMP"  > /dev/null 2>&1
+    $FBINK -b -m -t $FONT,size=150,top=10,bottom=0,left=0,right=0 "$TIME"
+    $FBINK -b -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "$DATE"
+    $FBINK -b  -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT"
+    $FBINK -b -m -t $FONT,size=20,top=510,bottom=0,left=0,right=0 "$COND"
+    $FBINK -b -m -t $FONT,size=50,top=590,bottom=0,left=0,right=0 "$TEMP"
+    if [ "$NOWIFI" = "1"]; then
+        $FBINK -r -t $FONT,size=10,top=0,bottom=0,left=50,right=0 "No Wifi!"
+    fi
+    ### update framebuffer
+    $FBINK -w -s foo
 
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Battery: $BAT" >> $LOG
-
-    ### let the display update
-    #sleep 1
 
     ### Set Wakeuptimer
 	#echo 0 > /sys/class/rtc/rtc1/wakealarm
