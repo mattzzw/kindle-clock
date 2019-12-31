@@ -9,17 +9,19 @@ COND="---"
 TEMP="---"
 
 wait_for_wifi() {
-  return `lipc-get-prop com.lab126.wifid cmState | grep -e "READY" -e "CONNECTED" | wc -l`
+  return `lipc-get-prop com.lab126.wifid cmState | grep -e "CONNECTED" | wc -l`
 }
 
 
 ### Updates weather info
 update_weather() {
-    WEATHER=$(curl -s -f -m 5 https://de.wttr.in/$CITY?format="%C,+%t")
+    WEATHER=$(curl -v -s -f -m 5 https://de.wttr.in/$CITY?format="%C,+%t" 2>> $LOG)
+    RC=$?
+    echo "`date '+%Y-%m-%d_%H:%M:%S'`: Got weather data. ($WEATHER, RC=$RC)" >> $LOG
     if [ ! -z "$WEATHER" ]; then
         COND=${WEATHER%,*}
         TEMP=$(echo ${WEATHER#*,} | sed s/+//)
-        echo "`date '+%Y-%m-%d_%H:%M:%S'`: Got weather data. ($WEATHER)" >> $LOG
+        echo "`date '+%Y-%m-%d_%H:%M:%S'`: Processed weather data. ($TEMP // $COND)" >> $LOG
     fi
 }
 
@@ -72,8 +74,6 @@ while true; do
     if [ "$MINUTE" = "00" ]; then
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Enabling Wifi" >> $LOG
         ### Enable WIFI, disable wifi first in order to have a defined state
-        lipc-set-prop com.lab126.cmd wirelessEnable 0
-        sleep 1
     	lipc-set-prop com.lab126.cmd wirelessEnable 1
         TRYCNT=0
         NOWIFI=0
@@ -85,21 +85,29 @@ while true; do
                 NOWIFI=1
                 break
             fi
-            echo "`date '+%Y-%m-%d_%H:%M:%S'`: Waiting for Wifi... ($TRYCNT)" >> $LOG
-            lipc-get-prop com.lab126.wifid cmState >> $LOG
+            WIFISTATE=$(lipc-get-prop com.lab126.wifid cmState)
+            echo "`date '+%Y-%m-%d_%H:%M:%S'`: Waiting for Wifi... (try $TRYCNT: $WIFISTATE)" >> $LOG
+            ### Are we stuck in READY state?
+            if [ "$WIFISTATE" = "READY" ]; then
+                ### we have to reconnect
+                echo "`date '+%Y-%m-%d_%H:%M:%S'`: Reconnecting to Wifi..." >> $LOG
+                /usr/bin/wpa_cli -i wlan0 reconnect
+
+                ### Could also be that kindle forgot the wpa ssid/psk combo
+                #if [ wpa_cli status | grep INACTIVE | wc -l ]; then...
+            fi
     	    sleep 1
             let TRYCNT=$TRYCNT+1
     	done
-        ### Just to be super sure...
-        echo "`date '+%Y-%m-%d_%H:%M:%S'`: Reconnecting to Wifi..." >> $LOG
-        /usr/bin/wpa_cli -i wlan0 reconnect
-        lipc-get-prop com.lab126.wifid cmState >> $LOG
+        echo "`date '+%Y-%m-%d_%H:%M:%S'`: wifi: `lipc-get-prop com.lab126.wifid cmState`" >> $LOG
+        echo "`date '+%Y-%m-%d_%H:%M:%S'`: wifi: `wpa_cli status`" >> $LOG
 
         if [ `lipc-get-prop com.lab126.wifid cmState` = "CONNECTED" ]; then
             ### Finally, set time
             echo "`date '+%Y-%m-%d_%H:%M:%S'`: Setting time..." >> $LOG
             ntpdate -s de.pool.ntp.org
-            echo "`date '+%Y-%m-%d_%H:%M:%S'`: Time set." >> $LOG
+            RC=$?
+            echo "`date '+%Y-%m-%d_%H:%M:%S'`: Time set. ($RC)" >> $LOG
             update_weather
         fi
 
@@ -120,7 +128,7 @@ while true; do
     $FBINK -b -m -t $FONT,size=20,top=510,bottom=0,left=0,right=0 "$COND"
     $FBINK -b -m -t $FONT,size=50,top=590,bottom=0,left=0,right=0 "$TEMP"
     if [ "$NOWIFI" = "1"]; then
-        $FBINK -r -t $FONT,size=10,top=0,bottom=0,left=50,right=0 "No Wifi!"
+        $FBINK -b -t $FONT,size=10,top=0,bottom=0,left=50,right=0 "No Wifi!"
     fi
     ### update framebuffer
     $FBINK -w -s foo
