@@ -2,11 +2,22 @@
 
 PWD=$(pwd)
 LOG="/mnt/us/clock.log"
-FBINK="/mnt/us/extensions/MRInstaller/bin/K5/fbink -q"
+FBINK="fbink -q"
 FONT="regular=/usr/java/lib/fonts/Palatino-Regular.ttf"
 CITY="Hamburg"
 COND="---"
 TEMP="---"
+
+### uncomment/adjust according to your hardware
+#PW3
+FBROTATE="/sys/devices/platform/imx_epdc_fb/graphics/fb0/rotate"
+BACKLIGHT="/sys/devices/platform/imx-i2c.0/i2c-0/0-003c/max77696-bl.0/backlight/max77696-bl/brightness"
+BATTERY="/sys/devices/system/wario_battery/wario_battery0/battery_capacity"
+
+#PW2
+#FBROTATE="/sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate"
+#BACKLIGHT="/sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity"
+
 
 wait_for_wifi() {
   return `lipc-get-prop com.lab126.wifid cmState | grep -e "CONNECTED" | wc -l`
@@ -52,7 +63,7 @@ stop mcsd
 sleep 2
 
 ### turn off 270 degree rotation of framebuffer device
-echo 0 > /sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate
+echo 0 > $FBROTATE
 
 ### Set lowest cpu clock
 echo powersave > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
@@ -67,7 +78,7 @@ clear_screen
 while true; do
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Top of loop (awake!)." >> $LOG
     ### Backlight off
-    echo -n 0 > /sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity
+    echo -n 0 > $BACKLIGHT
 
     ### Get weather data and set time via ntpdate every hour
     MINUTE=`date "+%M"`
@@ -118,7 +129,7 @@ while true; do
     lipc-set-prop com.lab126.cmd wirelessEnable 0
 
     #BAT=$(gasgauge-info -s)
-    BAT=$(cat /sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity)
+    BAT=$(cat $BATTERY)
     TIME=$(date '+%H:%M')
     DATE=$(date '+%A, %-d. %B %Y')
 
@@ -150,5 +161,5 @@ while true; do
     rtcwake -d /dev/rtc1 -m no -s $SLEEP_SECS
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Going to sleep for $SLEEP_SECS" >> $LOG
 	### Go into Suspend to Memory (STR)
-	echo "mem" > /sys/power/state
+#	echo "mem" > /sys/power/state
 done
