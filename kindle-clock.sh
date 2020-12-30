@@ -2,20 +2,26 @@
 
 PWD=$(pwd)
 LOG="/mnt/us/clock.log"
-FBINK="fbink -q"
-FONT="regular=/usr/java/lib/fonts/Palatino-Regular.ttf"
+FBINK="./fbink -q"
+# FONT="regular=/usr/java/lib/fonts/Palatino-Regular.ttf"
+FONT="regular=/usr/java/lib/fonts/Caecilia_LT_75_Bold.ttf"
 CITY="Hamburg"
 COND="---"
 TEMP="---"
 
 ### uncomment/adjust according to your hardware
+#K4NT
+FBROTATE=" echo 14 2 > /proc/eink_fb/update_display"
+BACKLIGHT="/dev/null"
+BATTERY="/sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity"
+
 #PW3
-FBROTATE="/sys/devices/platform/imx_epdc_fb/graphics/fb0/rotate"
-BACKLIGHT="/sys/devices/platform/imx-i2c.0/i2c-0/0-003c/max77696-bl.0/backlight/max77696-bl/brightness"
-BATTERY="/sys/devices/system/wario_battery/wario_battery0/battery_capacity"
+#FBROTATE="echo 0 > /sys/devices/platform/imx_epdc_fb/graphics/fb0/rotate"
+#BACKLIGHT="/sys/devices/platform/imx-i2c.0/i2c-0/0-003c/max77696-bl.0/backlight/max77696-bl/brightness"
+#BATTERY="/sys/devices/system/wario_battery/wario_battery0/battery_capacity"
 
 #PW2
-#FBROTATE="/sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate"
+#FBROTATE="echo 0 > /sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate"
 #BACKLIGHT="/sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity"
 
 
@@ -26,7 +32,8 @@ wait_for_wifi() {
 
 ### Updates weather info
 update_weather() {
-    WEATHER=$(curl -v -s -f -m 5 https://de.wttr.in/$CITY?format="%C,+%t" 2>> $LOG)
+    WEATHER=$(curl -s -f -m 5 https://de.wttr.in/$CITY?format="%C,+%t" )
+#     WEATHER=$(curl -v -s -f -m 5 https://de.wttr.in/$CITY?format="%C,+%t" 2>> $LOG)
     RC=$?
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Got weather data. ($WEATHER, RC=$RC)" >> $LOG
     if [ ! -z "$WEATHER" ]; then
@@ -53,17 +60,30 @@ $FBINK -w -c -f -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "Starting Cl
 
 
 ### stop processes that we don't need
-stop lab126_gui
-stop otaupd
-stop phd
-stop tmd
-stop x
-stop todo
-stop mcsd
-sleep 2
+#K4
+/etc/init.d/framework stop
+/etc/init.d/pmond stop
+/etc/init.d/phd stop
+/etc/init.d/cmd stop
+/etc/initd./tmd stop
+/etc/init.d/browserd stop
+/etc/init.d/webreaderd stop
+/etc/init.d/lipc-daemon stop
+/etc/init.d/powerd stop
+
+
+#PW2/3
+#stop lab126_gui
+#stop otaupd
+#stop phd
+#stop tmd
+#stop x
+#stop todo
+#stop mcsd
+#sleep 2
 
 ### turn off 270 degree rotation of framebuffer device
-echo 0 > $FBROTATE
+$FBROTATE
 
 ### Set lowest cpu clock
 echo powersave > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
@@ -134,15 +154,15 @@ while true; do
     DATE=$(date '+%A, %-d. %B %Y')
 
     $FBINK -b -c -m -t $FONT,size=150,top=10,bottom=0,left=0,right=0 "$TIME"
-    $FBINK -b -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "$DATE"
-    $FBINK -b    -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT"
-    $FBINK -b -m -t $FONT,size=20,top=510,bottom=0,left=0,right=0 "$COND"
-    $FBINK -b -m -t $FONT,size=50,top=590,bottom=0,left=0,right=0 "$TEMP"
+    $FBINK -b -m -t $FONT,size=20,top=310,bottom=0,left=0,right=0 "$DATE"
+    $FBINK -b    -t $FONT,size=10,top=0,bottom=0,left=700,right=0 "Bat: $BAT"
+    $FBINK -b -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "$COND"
+    $FBINK -b -m -t $FONT,size=30,top=450,bottom=0,left=0,right=0 "$TEMP"
     if [ "$NOWIFI" = "1"]; then
         $FBINK -b -t $FONT,size=10,top=0,bottom=0,left=50,right=0 "No Wifi!"
     fi
     ### update framebuffer
-    $FBINK -w -s foo
+    $FBINK -w -s 
 
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Battery: $BAT" >> $LOG
 
