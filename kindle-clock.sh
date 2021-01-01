@@ -1,29 +1,33 @@
 #!/bin/sh
 
 PWD=$(pwd)
-LOG="/mnt/us/clock.log"
-FBINK="./fbink -q"
-# FONT="regular=/usr/java/lib/fonts/Palatino-Regular.ttf"
-FONT="regular=/usr/java/lib/fonts/Caecilia_LT_75_Bold.ttf"
+#LOG="/mnt/us/clock.log"
+LOG="/dev/null"
+FBINK="/mnt/us/extensions/MRInstaller/bin/K5/fbink -q"
+FONT="regular=/usr/java/lib/fonts/Palatino-Regular.ttf"
+#FONT="regular=/usr/java/lib/fonts/Caecilia_LT_75_Bold.ttf"
 CITY="Hamburg"
 COND="---"
 TEMP="---"
 
 ### uncomment/adjust according to your hardware
 #K4NT
-FBROTATE=" echo 14 2 > /proc/eink_fb/update_display"
-BACKLIGHT="/dev/null"
-BATTERY="/sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity"
+#FBROTATE=" echo 14 2 > /proc/eink_fb/update_display"
+#BACKLIGHT="/dev/null"
+#BATTERY="/sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity"
+#TEMP_SENSOR="/sys/devices/system/yoshi_battery/yoshi_battery0/battery_temperature"
 
 #PW3
 #FBROTATE="echo 0 > /sys/devices/platform/imx_epdc_fb/graphics/fb0/rotate"
 #BACKLIGHT="/sys/devices/platform/imx-i2c.0/i2c-0/0-003c/max77696-bl.0/backlight/max77696-bl/brightness"
 #BATTERY="/sys/devices/system/wario_battery/wario_battery0/battery_capacity"
+#TEMP_SENSOR="/sys/devices/system/wario_battery/wario_battery0/battery_temperature"
 
 #PW2
-#FBROTATE="echo 0 > /sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate"
-#BACKLIGHT="/sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity"
-
+FBROTATE="echo -n 0 > /sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate"
+BACKLIGHT="/sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity"
+BATTERY="/sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity"
+TEMP_SENSOR="/sys/devices/system/yoshi_battery/yoshi_battery0/battery_temperature"
 
 wait_for_wifi() {
   return `lipc-get-prop com.lab126.wifid cmState | grep -e "CONNECTED" | wc -l`
@@ -61,29 +65,29 @@ $FBINK -w -c -f -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "Starting Cl
 
 ### stop processes that we don't need
 #K4
-/etc/init.d/framework stop
-/etc/init.d/pmond stop
-/etc/init.d/phd stop
-/etc/init.d/cmd stop
-/etc/initd./tmd stop
-/etc/init.d/browserd stop
-/etc/init.d/webreaderd stop
-/etc/init.d/lipc-daemon stop
-/etc/init.d/powerd stop
-
+#/etc/init.d/framework stop
+#/etc/init.d/pmond stop
+#/etc/init.d/phd stop
+#/etc/init.d/cmd stop
+#/etc/initd./tmd stop
+#/etc/init.d/browserd stop
+#/etc/init.d/webreaderd stop
+#/etc/init.d/lipc-daemon stop
+#/etc/init.d/powerd stop
 
 #PW2/3
-#stop lab126_gui
-#stop otaupd
-#stop phd
-#stop tmd
-#stop x
-#stop todo
-#stop mcsd
-#sleep 2
+stop lab126_gui
+stop otaupd
+stop phd
+stop tmd
+stop x
+stop todo
+stop mcsd
+
+sleep 2
 
 ### turn off 270 degree rotation of framebuffer device
-$FBROTATE
+eval $FBROTATE
 
 ### Set lowest cpu clock
 echo powersave > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
@@ -152,17 +156,21 @@ while true; do
     BAT=$(cat $BATTERY)
     TIME=$(date '+%H:%M')
     DATE=$(date '+%A, %-d. %B %Y')
+    INSIDE_TEMP=$(cat $TEMP_SENSOR)
+    # convert to centigrade
+    let INSIDE_TEMP="(INSIDE_TEMP-32)*5/9"
 
+    ## adjust coordinates according to display resolution. This is for PW2.
     $FBINK -b -c -m -t $FONT,size=150,top=10,bottom=0,left=0,right=0 "$TIME"
-    $FBINK -b -m -t $FONT,size=20,top=310,bottom=0,left=0,right=0 "$DATE"
-    $FBINK -b    -t $FONT,size=10,top=0,bottom=0,left=700,right=0 "Bat: $BAT"
-    $FBINK -b -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "$COND"
-    $FBINK -b -m -t $FONT,size=30,top=450,bottom=0,left=0,right=0 "$TEMP"
-    if [ "$NOWIFI" = "1"]; then
+    $FBINK -b -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "$DATE"
+    $FBINK -b    -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT"
+    $FBINK -b -m -t $FONT,size=20,top=510,bottom=0,left=0,right=0 "$COND"
+    $FBINK -b -m -t $FONT,size=30,top=600,bottom=0,left=0,right=0 "$TEMP | $INSIDE_TEMP°C"
+    if [ "$NOWIFI" = "1" ]; then
         $FBINK -b -t $FONT,size=10,top=0,bottom=0,left=50,right=0 "No Wifi!"
     fi
     ### update framebuffer
-    $FBINK -w -s 
+    $FBINK -w -s
 
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Battery: $BAT" >> $LOG
 
@@ -181,5 +189,6 @@ while true; do
     rtcwake -d /dev/rtc1 -m no -s $SLEEP_SECS
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Going to sleep for $SLEEP_SECS" >> $LOG
 	### Go into Suspend to Memory (STR)
-#	echo "mem" > /sys/power/state
+	echo "mem" > /sys/power/state
+#    exit
 done
