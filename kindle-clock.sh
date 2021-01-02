@@ -15,19 +15,19 @@ TEMP="---"
 #FBROTATE=" echo 14 2 > /proc/eink_fb/update_display"
 #BACKLIGHT="/dev/null"
 #BATTERY="/sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity"
-#TEMP_SENSOR="/sys/devices/system/yoshi_battery/yoshi_battery0/battery_temperature"
+#TEMP_SENSOR="/sys/devices/virtual/i2c-adapter/i2c-1/1-0048/papyrus_temperature"
 
 #PW3
 #FBROTATE="echo 0 > /sys/devices/platform/imx_epdc_fb/graphics/fb0/rotate"
 #BACKLIGHT="/sys/devices/platform/imx-i2c.0/i2c-0/0-003c/max77696-bl.0/backlight/max77696-bl/brightness"
 #BATTERY="/sys/devices/system/wario_battery/wario_battery0/battery_capacity"
-#TEMP_SENSOR="/sys/devices/system/wario_battery/wario_battery0/battery_temperature"
+#TEMP_SENSOR="/sys/devices/virtual/i2c-adapter/i2c-1/1-0068/papyrus_temperature"
 
 #PW2
 FBROTATE="echo -n 0 > /sys/devices/platform/mxc_epdc_fb/graphics/fb0/rotate"
 BACKLIGHT="/sys/devices/system/fl_tps6116x/fl_tps6116x0/fl_intensity"
 BATTERY="/sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity"
-TEMP_SENSOR="/sys/devices/system/yoshi_battery/yoshi_battery0/battery_temperature"
+TEMP_SENSOR="/sys/devices/virtual/i2c-adapter/i2c-1/1-0068/papyrus_temperature"
 
 wait_for_wifi() {
   return `lipc-get-prop com.lab126.wifid cmState | grep -e "CONNECTED" | wc -l`
@@ -42,7 +42,7 @@ update_weather() {
     echo "`date '+%Y-%m-%d_%H:%M:%S'`: Got weather data. ($WEATHER, RC=$RC)" >> $LOG
     if [ ! -z "$WEATHER" ]; then
         COND=${WEATHER%,*}
-        TEMP=$(echo ${WEATHER#*,} | sed s/+//)
+        TEMP=$(echo ${WEATHER##*,} | sed s/+//)
         echo "`date '+%Y-%m-%d_%H:%M:%S'`: Processed weather data. ($TEMP // $COND)" >> $LOG
     fi
 }
@@ -156,16 +156,16 @@ while true; do
     BAT=$(cat $BATTERY)
     TIME=$(date '+%H:%M')
     DATE=$(date '+%A, %-d. %B %Y')
-    INSIDE_TEMP=$(cat $TEMP_SENSOR)
+    INSIDE_TEMP_C=$(cat $TEMP_SENSOR)
     # convert to centigrade
-    let INSIDE_TEMP="(INSIDE_TEMP-32)*5/9"
+    #let INSIDE_TEMP_C="($INSIDE_TEMP_F-32)*5/9"
 
     ## adjust coordinates according to display resolution. This is for PW2.
     $FBINK -b -c -m -t $FONT,size=150,top=10,bottom=0,left=0,right=0 "$TIME"
     $FBINK -b -m -t $FONT,size=20,top=410,bottom=0,left=0,right=0 "$DATE"
     $FBINK -b    -t $FONT,size=10,top=0,bottom=0,left=900,right=0 "Bat: $BAT"
     $FBINK -b -m -t $FONT,size=20,top=510,bottom=0,left=0,right=0 "$COND"
-    $FBINK -b -m -t $FONT,size=30,top=600,bottom=0,left=0,right=0 "$TEMP | $INSIDE_TEMP°C"
+    $FBINK -b -m -t $FONT,size=30,top=600,bottom=0,left=0,right=0 "$TEMP | $INSIDE_TEMP_C°C"
     if [ "$NOWIFI" = "1" ]; then
         $FBINK -b -t $FONT,size=10,top=0,bottom=0,left=50,right=0 "No Wifi!"
     fi
